@@ -5,7 +5,7 @@
             {% for movie in movies %}
             <li>{{ movie.title }} ({{ movie.year }})
                 <span class="float-right">
-                    <a class="douban" href="https://www.douban.com/search?q={{ movie.title }}" target="_blank" title="Find this movie on Douban">豆瓣</a> 
+                    <a class="douban" href="https://search.douban.com/movie/subject_search?search_text={{ movie.title }}&cat=1002" target="_blank" title="Find this movie on Douban">豆瓣</a> 
                 </span>
             </li> {# equal to movie['title'] #}
             {% endfor %}
