@@ -1,10 +1,35 @@
-from flask import Flask, url_for, escape
+import os
+import sys
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, url_for, escape, render_template
+import click
+
+WIN = sys.platform.startswith('win')
+if WIN:
+    prefix = 'sqlite:///'
+else:
+    prefix = 'sqlite:////'
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path, 'data.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20))
+
+class Movie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(60))
+    year = db.Column(db.String(4))
 
 @app.route('/')
-def hello():
-    return u'欢迎来到我的 Watchlist!'
+def index():
+    user = User.query.first()
+    movies = Movie.query.all()
+    return render_template('index.html', user=user, movies=movies)
 
 @app.route('/user/<name>')
 def user_page(name):
@@ -14,6 +39,38 @@ def user_page(name):
 def test_url_for():
     return url_for('user_page', name='ricky')
 
+@app.cli.command()
+@click.option('--drop', is_flag=True, help='Create after drop.')
+def initdb(drop):
+    if drop:
+        db.drop_all()
+    db.create_all()
+    click.echo('Initialized database.')
 
+@app.cli.command()
+def forge():
+    db.drop_all()
+    db.create_all()
 
+    name = 'Ricky Weng'
+    movies = [
+        {'title': 'Zelig', 'year': '1983'},
+        {'title': '童年往事', 'year': '1985'},
+        {'title': '戀戀風塵', 'year': '1986'},
+        {'title': '重慶森林', 'year': '1994'},
+        {'title': '阳光灿烂的日子', 'year': '1994'},
+        {'title': 'キッズ・リターン', 'year': '1996'},
+        {'title': '小武', 'year': '1998'},
+        {'title': '一一', 'year': '2000'},
+        {'title': '三峡好人', 'year': '2006'},
+        {'title': '海よりもまだ深', 'year': '2016'}
+    ]
 
+    user = User(name=name)
+    db.session.add(user)
+    for m in movies:
+        movie = Movie(title=m['title'], year=m['year'])
+        db.session.add(movie)
+
+    db.session.commit()
+    click.echo('Done.')
